@@ -1,15 +1,18 @@
 // server.js
 const express = require("express");
+const bodyParser = require("body-parser");
 const app = express();
 const port = 3000;
+const routes = require("./routes/routes");
+const cors = require("cors");
 
 // Middleware to parse JSON bodies
-app.use(express.json());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cors());
 
-// Basic route
-app.get("/", (req, res) => {
-  res.send("Hello, World!");
-});
+//print hello world from app.js
+app.use("/", routes.router);
 
 // Start the server
 app.listen(port, () => {
