@@ -8,13 +8,29 @@ const Chatbot = () => {
   const handleSend = () => {
     if (input.trim()) {
       setMessages([...messages, { text: input, user: "user" }]);
+      const userMessage = input;
       setInput("");
-      setTimeout(() => {
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { text: "This is a bot response", user: "bot" },
-        ]);
-      }, 1000);
+
+      try {
+        fetch("http://localhost:3000/hello", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ message: userMessage }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            setTimeout(() => {
+              setMessages((prevMessages) => [
+                ...prevMessages,
+                { text: data.reply, user: "bot" },
+              ]);
+            }, 1000);
+          });
+      } catch (err) {
+        console.log(err);
+      }
     }
   };
 
