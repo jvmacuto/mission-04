@@ -1,9 +1,10 @@
 import "./App.css";
+import Chatbot from "./components/Chatbot";
 
 function App() {
   return (
     <>
-      <h1>Hello World!</h1>
+      <Chatbot></Chatbot>
     </>
   );
 }
