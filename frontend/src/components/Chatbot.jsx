@@ -40,9 +40,30 @@ const Chatbot = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setMessages([
+      try {
+        fetch("http://localhost:3000/greeting", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message:
+              "Introduce yourself as Tinnie.  I help you to choose an insurance policy.  May I ask you a few personal questions to make sure I recommend the best policy for you?. You will only ask more questions if the user agrees to be asked. ",
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            setMessages((prevMessages) => [
+              ...prevMessages,
+              { text: data.reply, user: "bot" },
+            ]);
+          });
+      } catch (err) {
+        console.log(err);
+      }
+      /*setMessages([
         { text: "Hello! How can I assist you today?", user: "bot" },
-      ]);
+      ]);*/
     }, 1000); // 1 second delay
 
     return () => clearTimeout(timer); // Cleanup the timer on component unmount
