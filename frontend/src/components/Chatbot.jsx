@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "../styles/chatbot.css";
 
 const Chatbot = () => {
@@ -34,6 +34,19 @@ const Chatbot = () => {
     }
   };
 
+  const handleReset = () => {
+    setMessages([]);
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMessages([
+        { text: "Hello! How can I assist you today?", user: "bot" },
+      ]);
+    }, 1000); // 1 second delay
+
+    return () => clearTimeout(timer); // Cleanup the timer on component unmount
+  }, []);
   return (
     <div className="chatbot">
       <div className="chatbot-messages">
@@ -51,6 +64,7 @@ const Chatbot = () => {
           onKeyPress={(e) => e.key === "Enter" && handleSend()}
         />
         <button onClick={handleSend}>Send</button>
+        <button onClick={handleReset}>Reset</button>
       </div>
     </div>
   );
