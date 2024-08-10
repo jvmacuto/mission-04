@@ -1,4 +1,4 @@
-// server.js
+// src/app.js
 const express = require("express");
 const bodyParser = require("body-parser");
 const app = express();
@@ -11,10 +11,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 
-//print hello world from app.js
 app.use("/", routes.router);
 
-// Start the server
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });

@@ -19,14 +19,39 @@ const Chatbot = () => {
           },
           body: JSON.stringify({ message: userMessage }),
         })
-          .then((response) => response.json())
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
           .then((data) => {
+            const aiMessage = data.reply;
+
+            // Ensure aiMessage is properly handled whether it's a string or an object
+            let formattedMessage = aiMessage;
+            if (typeof aiMessage === "object" && aiMessage.parts) {
+              formattedMessage = aiMessage.parts
+                .map((part) => part.text)
+                .join(" ");
+            }
+
             setTimeout(() => {
               setMessages((prevMessages) => [
                 ...prevMessages,
-                { text: data.reply, user: "bot" },
+                { text: formattedMessage, user: "bot" },
               ]);
             }, 1000);
+          })
+          .catch((error) => {
+            console.error("Error during fetch:", error);
+            setMessages((prevMessages) => [
+              ...prevMessages,
+              {
+                text: "Sorry, something went wrong. Please try again later.",
+                user: "bot",
+              },
+            ]);
           });
       } catch (err) {
         console.log(err);
@@ -41,33 +66,54 @@ const Chatbot = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
-        fetch("http://localhost:3000/greeting", {
+        fetch("http://localhost:3000/hello", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
             message:
-              "Introduce yourself as Tinnie.  I help you to choose an insurance policy.  May I ask you a few personal questions to make sure I recommend the best policy for you?. You will only ask more questions if the user agrees to be asked. ",
+              "Introduce yourself as Tinnie. I help you to choose an insurance policy. May I ask you a few personal questions to make sure I recommend the best policy for you? You will only ask more questions if the user agrees to be asked.",
           }),
         })
-          .then((response) => response.json())
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
           .then((data) => {
+            const aiMessage = data.reply;
+            let formattedMessage = aiMessage;
+            if (typeof aiMessage === "object" && aiMessage.parts) {
+              formattedMessage = aiMessage.parts
+                .map((part) => part.text)
+                .join(" ");
+            }
+
             setMessages((prevMessages) => [
               ...prevMessages,
-              { text: data.reply, user: "bot" },
+              { text: formattedMessage, user: "bot" },
+            ]);
+          })
+          .catch((error) => {
+            console.error("Error during fetch:", error);
+            setMessages((prevMessages) => [
+              ...prevMessages,
+              {
+                text: "Sorry, something went wrong. Please try again later.",
+                user: "bot",
+              },
             ]);
           });
       } catch (err) {
         console.log(err);
       }
-      /*setMessages([
-        { text: "Hello! How can I assist you today?", user: "bot" },
-      ]);*/
     }, 1000); // 1 second delay
 
     return () => clearTimeout(timer); // Cleanup the timer on component unmount
   }, []);
+
   return (
     <div className="chatbot">
       <div className="chatbot-messages">
