@@ -28,7 +28,6 @@ const Chatbot = () => {
           .then((data) => {
             const aiMessage = data.reply;
 
-            // Check if aiMessage is an object and extract the necessary parts
             let formattedMessage = aiMessage;
             if (typeof aiMessage === "object") {
               formattedMessage = aiMessage.parts
@@ -116,14 +115,12 @@ const Chatbot = () => {
     return () => clearTimeout(timer); // Cleanup the timer on component unmount
   }, []);
 
-  // Function to convert text to formatted HTML
   const renderMessage = (message) => {
-    // Replace markdown syntax with HTML and apply more professional formatting
     const formattedMessage = message
-      .replace(/##\s(.+?)\n/g, "<h2>$1</h2>") // Header level 2
-      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") // Bold text
-      .replace(/\*\s(.+?)(?=\n|$)/g, "<li>$1</li>") // List item
-      .replace(/\n/g, "<br>"); // Line breaks
+      .replace(/##\s(.+?)\n/g, "<h2>$1</h2>")
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*\s(.+?)(?=\n|$)/g, "<li>$1</li>")
+      .replace(/\n/g, "<br>");
     return <div dangerouslySetInnerHTML={{ __html: formattedMessage }} />;
   };
 

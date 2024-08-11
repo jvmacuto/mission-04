@@ -1,6 +1,8 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
+const axios = require("axios"); // For making HTTP requests to external APIs
+
 const { VertexAI } = require("@google-cloud/vertexai");
 
 // Initialize Vertex AI with your Cloud project and location
@@ -8,6 +10,7 @@ const vertex_ai = new VertexAI({
   project: "consummate-fold-432104-k9",
   location: "australia-southeast1",
 });
+
 const model = "gemini-1.0-pro-002";
 
 // Instantiate the models
@@ -39,61 +42,87 @@ const generativeModel = vertex_ai.preview.getGenerativeModel({
 });
 
 // Create a chat session with the model
-const chat = generativeModel.startChat({
-  context: `
-    You are an insurance consultant named Tinnie. Your job is to recommend the most suitable insurance policy to users based on their responses. 
-
-    Business Rules:
-    - Mechanical Breakdown Insurance (MBI) is not available for trucks or racing cars.
-    - Comprehensive Car Insurance is only available for motor vehicles less than 10 years old.
-
-    Please ask the user questions to understand their needs and apply the above business rules when recommending an insurance policy.
-  `,
-});
+const chat = generativeModel.startChat({});
 
 // Initialize the Express app
 const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
-// Helper function to validate AI response
-const validateResponse = (response, userInputs) => {
-  if (
-    (userInputs.vehicleType === "truck" ||
-      userInputs.vehicleType === "racing car") &&
-    response.includes("Mechanical Breakdown Insurance")
-  ) {
-    return false; // Violates the business rule
+const conversationState = {}; // Store conversation states for multiple users
+
+// Example function to get quotes from an external API
+async function getInsuranceQuotes(vehicleDetails) {
+  try {
+    const response = await axios.post(
+      "https://api.insurancecompany.com/get-quote",
+      {
+        vehicle: vehicleDetails,
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching insurance quotes:", error);
+    return null;
   }
-  if (
-    userInputs.vehicleAge >= 10 &&
-    response.includes("Comprehensive Car Insurance")
-  ) {
-    return false; // Violates the business rule
-  }
-  return true; // Adheres to the business rules
-};
+}
 
 // Define a POST endpoint for sending messages to the AI
 app.post("/hello", async (req, res) => {
   const userMessage = req.body.message;
+  const sessionId = req.body.sessionId || "default"; // Identify user session
+
+  if (!conversationState[sessionId]) {
+    conversationState[sessionId] = {
+      step: 1,
+      vehicleDetails: null,
+    };
+  }
 
   try {
-    // Example user input parsing (this needs to be adapted to your actual input format)
-    const userInputs = {
-      vehicleType: "car", // Extract vehicle type from userMessage
-      vehicleAge: 5, // Extract vehicle age from userMessage
-    };
+    let aiResponse;
+    switch (conversationState[sessionId].step) {
+      case 1:
+        aiResponse =
+          "I'm Tinnie. I help you to choose an insurance policy. May I ask you a few personal questions to make sure I recommend the best policy for you?";
+        conversationState[sessionId].step++;
+        break;
+      case 2:
+        if (userMessage.toLowerCase().includes("yes")) {
+          aiResponse =
+            "Great! Let's start. What type of vehicle do you own? Is it a car, truck, or something else?";
+          conversationState[sessionId].step++;
+        } else {
+          aiResponse = "Okay, feel free to ask any questions if you need help!";
+          conversationState[sessionId].step = 1; // Reset the conversation if user opts out
+        }
+        break;
+      case 3:
+        conversationState[sessionId].vehicleDetails = userMessage; // Save vehicle details
+        aiResponse = "Can you tell me how old your vehicle is?";
+        conversationState[sessionId].step++;
+        break;
+      case 4:
+        const vehicleAge = parseInt(userMessage, 10);
+        if (isNaN(vehicleAge)) {
+          aiResponse = "Please provide a valid number for the vehicle's age.";
+        } else {
+          const quotes = await getInsuranceQuotes({
+            type: conversationState[sessionId].vehicleDetails,
+            age: vehicleAge,
+          });
 
-    const streamResult = await chat.sendMessageStream([{ text: userMessage }]);
-    const aiResponse = (await streamResult.response).candidates[0].content;
-
-    // Validate AI response
-    if (!validateResponse(aiResponse, userInputs)) {
-      return res.status(400).json({
-        reply:
-          "The recommendation provided does not comply with the business rules.",
-      });
+          aiResponse = quotes
+            ? `Based on your vehicle, here are some insurance quotes: ${quotes}`
+            : "Sorry, I couldn't fetch the quotes right now.";
+        }
+        conversationState[sessionId].step = 1; // Reset after recommendation
+        break;
+      default:
+        aiResponse =
+          "Sorry, I didn't quite understand that. Could you please clarify?";
+        conversationState[sessionId].step = 1;
+        break;
     }
 
     res.json({ reply: aiResponse });
