@@ -61,6 +61,6 @@ app.post("/hello", async (req, res) => {
 });
 
 // Remove the /greeting endpoint from the frontend or make sure it is implemented
-app.listen(3000, () => {
-  console.log("Server is running on http://localhost:3000");
+app.listen(3000, "0.0.0.0", () => {
+  console.log("Server is running on http://0.0.0.0:3000");
 });
