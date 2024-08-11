@@ -2,7 +2,8 @@
   display: flex;
   flex-direction: column;
   height: 98vh;
-  max-width: 600px;
+  width: 100%; /* Full width of the viewport */
+  max-width: 1200px; /* You can adjust this to your preference */
   margin: 0 auto;
   border: 1px solid #ccc;
   border-radius: 8px;
@@ -22,7 +23,8 @@
   margin: 10px 0;
   padding: 15px;
   border-radius: 8px;
-  max-width: 50%; /* Set a maximum width for chat bubbles */
+  max-width: 70%; /* Adjust the width for more space */
+  line-height: 1.5;
 }
 
 .chatbot-message.user {
@@ -37,12 +39,25 @@
   text-align: left;
   align-self: flex-start;
   margin-right: auto; /* Ensure bot messages are on the left */
+  width: 100%; /* Make the bot messages take up the full width */
+}
+
+.chatbot-message ul {
+  padding-left: 20px; /* Add padding for bullet points */
+  margin-top: 10px;
+}
+
+.chatbot-message li {
+  margin-bottom: 5px;
 }
 
 .chatbot-input {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 10px;
+  border-top: 1px solid #ccc;
+  background-color: #fff;
 }
 
 .chatbot-input input {

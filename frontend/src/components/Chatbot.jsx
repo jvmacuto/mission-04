@@ -28,13 +28,15 @@ const Chatbot = () => {
           .then((data) => {
             const aiMessage = data.reply;
 
-            // Ensure aiMessage is properly handled whether it's a string or an object
+            // Check if aiMessage is an object and extract the necessary parts
             let formattedMessage = aiMessage;
-            if (typeof aiMessage === "object" && aiMessage.parts) {
+            if (typeof aiMessage === "object") {
               formattedMessage = aiMessage.parts
                 .map((part) => part.text)
                 .join(" ");
             }
+
+            console.log("Full message from AI:", formattedMessage); // Log the message
 
             setTimeout(() => {
               setMessages((prevMessages) => [
@@ -73,7 +75,7 @@ const Chatbot = () => {
           },
           body: JSON.stringify({
             message:
-              "Introduce yourself as Tinnie. I help you to choose an insurance policy. May I ask you a few personal questions to make sure I recommend the best policy for you? You will only ask more questions if the user agrees to be asked.",
+              "Introduce yourself as Tinnie. I help you to choose an insurance policy. May I ask you a few personal questions to make sure I recommend the best policy for you? You will only ask more questions if the user agrees to be asked. Please respond in British English.",
           }),
         })
           .then((response) => {
@@ -114,12 +116,23 @@ const Chatbot = () => {
     return () => clearTimeout(timer); // Cleanup the timer on component unmount
   }, []);
 
+  // Function to convert text to formatted HTML
+  const renderMessage = (message) => {
+    // Replace markdown syntax with HTML and apply more professional formatting
+    const formattedMessage = message
+      .replace(/##\s(.+?)\n/g, "<h2>$1</h2>") // Header level 2
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") // Bold text
+      .replace(/\*\s(.+?)(?=\n|$)/g, "<li>$1</li>") // List item
+      .replace(/\n/g, "<br>"); // Line breaks
+    return <div dangerouslySetInnerHTML={{ __html: formattedMessage }} />;
+  };
+
   return (
     <div className="chatbot">
       <div className="chatbot-messages">
         {messages.map((message, index) => (
           <div key={index} className={`chatbot-message ${message.user}`}>
-            {message.text}
+            {renderMessage(message.text)}
           </div>
         ))}
       </div>
