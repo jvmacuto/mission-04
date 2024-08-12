@@ -1,34 +1,53 @@
-// Import necessary modules or dependencies
+// controllers/controllers.js
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-require("dotenv").config(); // Load environment variables
+require("dotenv").config();
 
-console.log(process.env.API_KEY);
 const genAI = new GoogleGenerativeAI(process.env.API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-// get the initial greeting
-const getGreeting = async (req, res) => {
-  const initialPrompt = req.body.message;
-  const result = await model.generateContent(initialPrompt);
-  const response = await result.response;
-  const text = response.text();
+// Handle user input and provide AI response
+const handleUserInput = async (req, res) => {
+  const userInput = req.body.message;
+  let prompt = "You are Tinnie, an AI insurance consultant. ";
 
-  res.send({ reply: text });
+  if (
+    userInput.toLowerCase().includes("start") ||
+    userInput.toLowerCase().includes("hello")
+  ) {
+    prompt +=
+      "I help you choose the best insurance policy. May I ask you a few questions to make sure I recommend the best policy for you?";
+  } else {
+    prompt += `Based on the user's response: "${userInput}", what would be the next question you should ask to determine the best insurance policy?`;
+  }
+
+  const result = await model.generateContent(prompt);
+  const response = await result.response;
+  const aiResponse = response.text();
+
+  res.send({ reply: aiResponse });
 };
 
-// Example controller function
-const getResponse = async (req, res) => {
-  const initialPrompt = req.body.message;
-  const result = await model.generateContent(initialPrompt);
-  const response = await result.response;
-  const text = response.text();
+// Generate final insurance recommendation
+const generateRecommendation = async (req, res) => {
+  const userAttributes = req.body.attributes;
+  let prompt =
+    "You are Tinnie, an AI insurance consultant. Based on the following user details: ";
 
-  res.send({ reply: text });
+  for (const [key, value] of Object.entries(userAttributes)) {
+    prompt += `${key}: ${value}, `;
+  }
+
+  prompt +=
+    "considering that MBI is not available to trucks and racing cars and Comprehensive Car Insurance is only for vehicles less than 10 years old, what insurance policy would you recommend and why?";
+
+  const result = await model.generateContent(prompt);
+  const response = await result.response;
+  const recommendation = response.text();
+
+  res.send({ recommendation: recommendation });
 };
 
-// Export your controller functions
 module.exports = {
-  getGreeting,
-  getResponse,
-  // Add more controller functions here if needed
+  handleUserInput,
+  generateRecommendation,
 };
