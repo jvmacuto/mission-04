@@ -29,7 +29,8 @@ const handleUserInput = async (req, res) => {
 
 // Generate final insurance recommendation
 const generateRecommendation = async (req, res) => {
-  const userAttributes = req.body.attributes;
+  const userAttributes = req.body;
+  console.log(userAttributes);
   let prompt =
     "You are Tinnie, an AI insurance consultant. Based on the following user details: ";
 
@@ -38,12 +39,13 @@ const generateRecommendation = async (req, res) => {
   }
 
   prompt +=
-    "considering that MBI is not available to trucks and racing cars and Comprehensive Car Insurance is only for vehicles less than 10 years old, what insurance policy would you recommend and why?";
+    "considering that MBI is not available to trucks and racing cars and Comprehensive Car Insurance is only for vehicles less than 10 years old, what insurance policy would you recommend and why? Do not mention the ${key} and ${value} variables in your response.";
 
   const result = await model.generateContent(prompt);
   const response = await result.response;
   const recommendation = response.text();
 
+  console.log(recommendation);
   res.send({ recommendation: recommendation });
 };
 
