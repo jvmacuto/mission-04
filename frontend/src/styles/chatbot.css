@@ -74,12 +74,20 @@
 
 /* Input Field */
 .chatbot-input input {
+  width: 900px; /* Make the input field responsive */
   flex: 1;
-  padding: 12px;
-  border: 1px solid #ddd;
+  padding: 15px; /* Increased padding for better spacing */
+  border: 1px solid #ccc; /* Slightly darker border for better visibility */
   border-radius: 6px;
   font-size: 16px;
   background-color: #f8f9fa;
+  transition: border-color 0.3s, box-shadow 0.3s; /* Smooth transition for focus state */
+}
+
+.chatbot-input input:focus {
+  border-color: #007bff; /* Border color on focus */
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5); /* Subtle shadow on focus */
+  outline: none; /* Remove default outline */
 }
 
 /* Submit Button */

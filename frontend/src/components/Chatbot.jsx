@@ -1,12 +1,16 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import "../styles/chatbot.css";
 
 const Chatbot = () => {
   const [messages, setMessages] = useState([]);
+  const [conversationState, setConversationState] = useState([]);
   const [input, setInput] = useState("");
   const [accumulatedMessages, setAccumulatedMessages] = useState([]);
   const [questionCount, setQuestionCount] = useState(0);
   const messagesEndRef = useRef(null);
+
+  const [isChatActive, setIsChatActive] = useState(true);
+  const [isInitialQuestionAsked, setIsInitialQuestionAsked] = useState(false);
 
   const handleSend = (e) => {
     e.preventDefault();
@@ -29,19 +33,55 @@ const Chatbot = () => {
     //clear input field
     setInput("");
 
-    //send user message to backend
-    if (questionCount < 6) {
-      //add question to limit questions
-      setQuestionCount(questionCount + 1);
+    // Handle initial yes/no question
+    if (!isInitialQuestionAsked) {
+      if (input.toLowerCase() === "yes") {
+        const newAiMessage = {
+          user: "bot",
+          text: "Great! Let's get started.",
+          timestamp: Date.now(),
+        };
+        setMessages((prevMessages) => [...prevMessages, newAiMessage]);
+        setIsInitialQuestionAsked(true);
+      } else if (input.toLowerCase() === "no") {
+        const newAiMessage = {
+          user: "bot",
+          text: "Goodbye! Have a great day!",
+          timestamp: Date.now(),
+        };
+        setMessages((prevMessages) => [...prevMessages, newAiMessage]);
+        setIsChatActive(false);
+      } else {
+        const newAiMessage = {
+          user: "bot",
+          text: "Please answer with 'yes' or 'no'.",
+          //set delay
+          timestamp: Date.now(),
+        };
+        setMessages((prevMessages) => [...prevMessages, newAiMessage]);
+      }
+    } else {
+      // Send message to backend or handle further conversation
 
-      console.log(questionCount);
-      try {
-        fetch("http://localhost:3000/input", {
+      setQuestionCount(questionCount + 1);
+      if (questionCount < 5) {
+        //setaccumulatedmessage to add key and message
+        setAccumulatedMessages([
+          ...accumulatedMessages,
+          { key: questionCount, message: input },
+        ]);
+
+        fetch("http://localhost:3000/chat", {
+          // Send user message to backend
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ message: input }),
+          body: JSON.stringify({
+            message: input,
+            questionCount: questionCount,
+            conversationState: conversationState, // Send conversation state to backend
+          }),
         })
           .then((response) => {
             if (!response.ok) {
@@ -51,58 +91,32 @@ const Chatbot = () => {
           })
           .then((data) => {
             const aiMessage = data.reply;
+            const newConversationState = data.conversationState;
             let formattedMessage = aiMessage;
+
+            // Update the conversation state in the client
+            setConversationState(newConversationState);
             if (typeof aiMessage === "object" && aiMessage.parts) {
               formattedMessage = aiMessage.parts
                 .map((part) => part.text)
                 .join(" ");
             }
 
-            // Ensure formattedMessage is defined before calling replace
-            if (formattedMessage) {
-              formattedMessage = formattedMessage.replace(
-                /(?:\r\n|\r|\n)/g,
-                "<br>"
-              );
-            }
-
             setMessages((prevMessages) => [
               ...prevMessages,
-              {
-                text: formattedMessage,
-                user: "bot",
-                timeStamp: Date.now(),
-                className: "chatbot-message.bot",
-              },
+              { text: formattedMessage, user: "bot" },
             ]);
-          })
-          .catch((err) => {
-            console.log(err);
           });
+      } else if (questionCount === 5) {
+        console.log("accumulatedMessages", accumulatedMessages);
 
-        // Add message to accumulatedMessages with key, user, and message
-        setAccumulatedMessages([
-          ...accumulatedMessages,
-          { key: accumulatedMessages.length, user: "user", message: input },
-        ]);
-      } catch (err) {
-        console.log(err);
-      }
-    } else if (questionCount === 6) {
-      //ai will thank user for chatting
-      const newAiMessage = {
-        text: "Thank you for chatting with me! I will now provide your feedback.",
-        user: "bot",
-        timeStamp: Date.now(),
-      };
-      setMessages((prevMessages) => [...prevMessages, newAiMessage]);
-      try {
+        //fetch recommendation
         fetch("http://localhost:3000/recommendation", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ message: accumulatedMessages }),
+          body: JSON.stringify(accumulatedMessages),
         })
           .then((response) => {
             if (!response.ok) {
@@ -119,71 +133,20 @@ const Chatbot = () => {
                 .join(" ");
             }
 
-            // Ensure formattedMessage is a string before calling replace
-            if (formattedMessage) {
-              formattedMessage = formattedMessage.replace(
-                /(?:\r\n|\r|\n)/g,
-                "<br>"
-              );
-            }
-
             setMessages((prevMessages) => [
               ...prevMessages,
-              {
-                text: formattedMessage,
-                user: "bot",
-                timeStamp: Date.now(),
-                className: "chatbot-message.bot",
-              },
+              { text: formattedMessage, user: "bot" },
             ]);
-          })
-          .catch((err) => {
-            console.log(err);
           });
-      } catch (err) {
-        console.log(err);
       }
     }
   };
-  // To prevent adding the feedback message multiple times
-  /*try {
-        const combinedMessages = accumulatedMessages.join(" ");
-        fetch("http://localhost:3000/recommendation", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ message: combinedMessages }),
-        })
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-          })
-          .then((data) => {
-            setMessages((prevMessages) => [
-              ...prevMessages,
-              { text: data.reply, user: "bot" },
-            ]);
-          })
-          .catch((error) => {
-            console.error("Error:", error);
-            setMessages((prevMessages) => [
-              ...prevMessages,
-              {
-                text: "Sorry, something went wrong. Please try again later.",
-                user: "bot",
-              },
-            ]);
-          });
-      } catch (err) {
-        console.log(err);
-      }*/
 
   const handleReset = () => {
     setMessages([]);
     setQuestionCount(0);
+    setIsInitialQuestionAsked(false);
+    setIsChatActive(true);
   };
 
   useEffect(() => {
@@ -191,9 +154,10 @@ const Chatbot = () => {
   }, [messages]);
 
   useEffect(() => {
+    const delayDuration = 2000; // 2 seconds delay
     const timer = setTimeout(() => {
       try {
-        fetch("http://localhost:3000/input", {
+        fetch("http://localhost:3000/hello", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -236,7 +200,7 @@ const Chatbot = () => {
       } catch (err) {
         console.log(err);
       }
-    }, 1000); // 1 second delay
+    }, delayDuration); // 1 second delay
 
     return () => clearTimeout(timer); // Cleanup the timer on component unmount
   }, []);
@@ -261,17 +225,15 @@ const Chatbot = () => {
         <div ref={messagesEndRef} />
       </div>
       <div className="chatbot-input">
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSend(e);
-            }
-          }}
-        />
+        {isChatActive && (
+          <form onSubmit={handleSend}>
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+            />
+          </form>
+        )}
         <button onClick={handleSend}>Send</button>
         <button onClick={handleReset}>Reset</button>
       </div>
